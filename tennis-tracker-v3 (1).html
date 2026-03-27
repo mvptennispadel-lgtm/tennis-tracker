@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tennis Progress Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #0F6E56; --green-light: #1D9E75; --green-pale: #E1F5EE;
+    --amber: #854F0B; --amber-pale: #FAEEDA;
+    --red-pale: #FCEBEB; --red: #A32D2D;
+    --bg: #F7F5F0; --card: #FFFFFF; --text: #1A1A1A; --muted: #6B6B6B;
+    --border: #E0DDD6; --radius: 14px; --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── NAV ── */
+  .nav { background: var(--green); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .nav-brand { font-family: 'DM Serif Display', serif; color: #fff; font-size: 18px; }
+  .nav-brand span { color: #9FE1CB; }
+  .nav-status { font-size: 11px; color: rgba(255,255,255,0.7); }
+  .nav-tabs { display: flex; gap: 2px; }
+  .nav-tab { background: transparent; border: none; color: rgba(255,255,255,0.65); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 6px 10px; border-radius: 8px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .nav-tab.active { background: rgba(255,255,255,0.18); color: #fff; font-weight: 500; }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 16px; max-width: 680px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ── CARDS ── */
+  .card { background: var(--card); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); margin-bottom: 14px; }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--green); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card-title::before { content: ''; width: 3px; height: 16px; background: var(--green); border-radius: 2px; }
+
+  /* ── FORM ── */
+  label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 5px; }
+  input, select, textarea { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: #fff; outline: none; transition: border 0.15s; }
+  input:focus, select:focus, textarea:focus { border-color: var(--green-light); }
+  textarea { resize: vertical; min-height: 72px; }
+  .form-row { margin-bottom: 12px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── BUTTONS ── */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 20px; border-radius: 10px; border: none; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; width: 100%; }
+  .btn-primary { background: var(--green); color: #fff; }
+  .btn-primary:hover { background: var(--green-light); }
+  .btn-secondary { background: var(--green-pale); color: var(--green); }
+  .btn-secondary:hover { background: #c5ecdf; }
+  .btn-danger { background: var(--red-pale); color: var(--red); }
+  .btn-sm { padding: 7px 14px; font-size: 12px; width: auto; border-radius: 8px; }
+
+  /* ── PILLS / BADGES ── */
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .pill-1 { background: #EEF2FF; color: #3730A3; }
+  .pill-2 { background: #E1F5EE; color: #0F6E56; }
+  .pill-3 { background: #FAEEDA; color: #854F0B; }
+  .pill-4 { background: #EDE9FE; color: #5B21B6; }
+  .pill-starter { background: #F0F9FF; color: #0369A1; }
+  .pill-regular { background: #E1F5EE; color: #0F6E56; }
+  .pill-intensive { background: #EDE9FE; color: #5B21B6; }
+
+  /* ── MEMBER LIST ── */
+  .member-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .member-item:last-child { border-bottom: none; }
+  .member-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--green-pale); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; color: var(--green); flex-shrink: 0; }
+  .member-info { flex: 1; min-width: 0; }
+  .member-name { font-weight: 500; font-size: 14px; }
+  .member-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .member-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* ── HISTORY ── */
+  .history-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .history-item:last-child { border-bottom: none; }
+  .history-date { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .history-content { font-size: 13px; line-height: 1.5; }
+
+  /* ── STATS ── */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .stat-card { background: var(--card); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .stat-value { font-size: 24px; font-weight: 600; color: var(--green); }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── MATCH STATS (NEW) ── */
+  .match-stat-card { background: var(--card); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; }
+  .match-stat-icon { font-size: 24px; flex-shrink: 0; }
+  .match-stat-value { font-size: 22px; font-weight: 600; color: var(--green); }
+  .match-stat-label { font-size: 11px; color: var(--muted); }
+
+  /* ── WA BOX ── */
+  .wa-box { background: #E7F7E1; border-radius: 12px; padding: 14px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; border: 1px solid #C3E6BB; }
+  .wa-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .wa-label { font-size: 12px; font-weight: 600; color: var(--green); }
+
+  /* ── EMPTY ── */
+  .empty { text-align: center; padding: 32px 16px; color: var(--muted); }
+  .empty-icon { font-size: 36px; margin-bottom: 8px; }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 20px 20px 0 0; padding: 20px 16px 32px; width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; margin-bottom: 16px; }
+
+  /* ── SECTION HEADER ── */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .section-title { font-family: 'DM Serif Display', serif; font-size: 20px; }
+
+  /* ── LEVEL BAR ── */
+  .level-bar { display: flex; gap: 4px; margin-top: 6px; }
+  .level-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .level-dot.filled { background: var(--green-light); }
+
+  /* ── SKILL BARS (NEW) ── */
+  .skill-bar-row { margin-bottom: 8px; }
+  .skill-bar-top { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; color: var(--muted); }
+  .skill-bar-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .skill-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--green-light)); border-radius: 3px; transition: width 0.8s ease; }
+
+  /* ── TOAST ── */
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+
+  /* ── SESI CHIPS ── */
+  .sesi-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .sesi-chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; background: var(--green-pale); color: var(--green); font-weight: 500; cursor: pointer; border: 1.5px solid transparent; }
+  .sesi-chip.selected { border-color: var(--green); background: var(--green); color: #fff; }
+
+  /* ── UTILS ── */
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .text-muted { font-size: 12px; color: var(--muted); }
+  .mt8 { margin-top: 8px; } .mt12 { margin-top: 12px; } .mt16 { margin-top: 16px; }
+  .gap8 { display: flex; gap: 8px; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── WIN/LOSS BADGE ── */
+  .badge-win { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #E1F5EE; color: #0F6E56; }
+  .badge-loss { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; background: var(--red-pale); color: var(--red); }
+  .match-score-display { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
+
+  /* ── SETUP / LOGIN ── */
+  .setup-screen { max-width: 480px; margin: 40px auto; padding: 24px 16px; }
+  .setup-card { background: #fff; border-radius: 20px; padding: 28px 24px; box-shadow: var(--shadow); }
+  .setup-title { font-family: 'DM Serif Display', serif; font-size: 24px; margin-bottom: 8px; color: var(--text); }
+  .setup-sub { font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+  .setup-step { background: var(--green-pale); border-radius: 12px; padding: 14px; margin-bottom: 12px; font-size: 13px; color: var(--green); line-height: 1.6; }
+  .setup-step strong { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--green); }
+  .code-box { background: #1A1A2E; color: #9FE1CB; border-radius: 10px; padding: 12px; font-family: monospace; font-size: 12px; line-height: 1.6; margin: 10px 0; overflow-x: auto; white-space: pre; }
+
+  /* ── MATCH ITEM (NEW) ── */
+  .match-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .match-item:last-child { border-bottom: none; }
+  .match-item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .match-players { font-size: 14px; font-weight: 500; }
+  .match-meta { font-size: 11px; color: var(--muted); }
+
+  /* ── RANK TABLE (NEW) ── */
+  .rank-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .rank-row:last-child { border-bottom: none; }
+  .rank-num { font-size: 16px; width: 28px; text-align: center; flex-shrink: 0; }
+  .rank-name { flex: 1; font-size: 14px; font-weight: 500; }
+  .rank-wr { font-size: 13px; font-weight: 600; color: var(--green); }
+  .wr-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .wr-bar-fill { height: 100%; background: var(--green-light); border-radius: 2px; }
+
+  @media (max-width: 480px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .nav-tab { font-size: 11px; padding: 5px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ SETUP SCREEN ═══════════════════ -->
+<div id="setup-screen" style="display:none;">
+  <div class="setup-screen">
+    <div class="setup-card">
+      <div class="setup-title">🎾 Setup Firebase</div>
+      <div class="setup-sub">Tempel konfigurasi Firebase kamu di bawah ini agar data tersinkron antar HP.</div>
+      <div class="setup-step">
+        <strong>Langkah 1 — Buat Firebase Project</strong>
+        Buka <b>console.firebase.google.com</b> → Add project → beri nama → Next → Create
+      </div>
+      <div class="setup-step">
+        <strong>Langkah 2 — Aktifkan Firestore</strong>
+        Klik <b>Firestore Database</b> → Create database → Start in test mode → pilih <b>asia-southeast1</b> → Enable
+      </div>
+      <div class="setup-step">
+        <strong>Langkah 3 — Ambil Config</strong>
+        Klik ikon gear → Project Settings → scroll bawah → Add app → pilih Web (&lt;/&gt;) → Register → copy bagian <b>firebaseConfig</b>
+      </div>
+      <div class="setup-step">
+        <strong>Langkah 4 — Paste di sini</strong>
+        Paste seluruh objek firebaseConfig ke kolom di bawah ini, lalu buat PIN.
+      </div>
+      <div class="form-row" style="margin-top:16px;">
+        <label>Paste firebaseConfig di sini</label>
+        <textarea id="firebase-config-input" style="min-height:160px;font-family:monospace;font-size:12px;" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "project.firebaseapp.com",
+  "projectId": "project-id",
+  "storageBucket": "project.appspot.com",
+  "messagingSenderId": "123456",
+  "appId": "1:123..."
+}'></textarea>
+      </div>
+      <div class="form-row">
+        <label>PIN Admin (4–6 digit)</label>
+        <input type="password" id="admin-pin-input" placeholder="contoh: 1234" maxlength="6">
+      </div>
+      <button class="btn btn-primary" onclick="saveConfig()">Simpan & Mulai</button>
+      <div id="setup-error" style="color:var(--red);font-size:13px;margin-top:10px;display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ LOGIN SCREEN ═══════════════════ -->
+<div id="login-screen" style="display:none;">
+  <div class="setup-screen">
+    <div class="setup-card">
+      <div class="setup-title">🎾 TennisTracker</div>
+      <div class="setup-sub">Masukkan PIN untuk akses</div>
+      <div class="form-row">
+        <label>PIN Admin</label>
+        <input type="password" id="login-pin" placeholder="PIN kamu" maxlength="6" onkeydown="if(event.key==='Enter')checkPin()">
+      </div>
+      <button class="btn btn-primary" onclick="checkPin()">Masuk</button>
+      <div id="login-error" style="color:var(--red);font-size:13px;margin-top:10px;display:none;">PIN salah, coba lagi.</div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-secondary btn-sm" onclick="resetConfig()" style="width:100%;">Reset Konfigurasi Firebase</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN APP ═══════════════════ -->
+<div id="main-app" style="display:none;">
+
+<nav class="nav">
+  <div style="display:flex;flex-direction:column;">
+    <div class="nav-brand">🎾 <span>Tennis</span>Tracker</div>
+    <div class="nav-status" id="sync-status">Menghubungkan...</div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">Dash</button>
+    <button class="nav-tab" onclick="showPage('members')">Member</button>
+    <button class="nav-tab" onclick="showPage('eval')">Evaluasi</button>
+    <button class="nav-tab" onclick="showPage('matches')">Match</button>
+    <button class="nav-tab" onclick="showPage('wa')">WA</button>
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── DASHBOARD ── -->
+<div class="page active" id="page-dashboard">
+  <div style="padding:16px 0 8px;">
+    <div class="section-title">Dashboard</div>
+    <div class="text-muted mt8" id="dash-date"></div>
+  </div>
+  <div class="stats-grid" id="stats-grid"></div>
+  <div class="card">
+    <div class="card-title">Distribusi Level</div>
+    <div id="level-dist"></div>
+  </div>
+  <!-- NEW: Leaderboard Win Rate -->
+  <div class="card" id="leaderboard-card" style="display:none;">
+    <div class="card-title">🏆 Win Rate Leaderboard</div>
+    <div id="leaderboard-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Evaluasi Terbaru</div>
+    <div id="recent-evals"></div>
+  </div>
+  <!-- NEW: Recent Matches on Dashboard -->
+  <div class="card" id="dash-matches-card" style="display:none;">
+    <div class="card-title">Match Terakhir</div>
+    <div id="dash-recent-matches"></div>
+  </div>
+</div>
+
+<!-- ── MEMBERS ── -->
+<div class="page" id="page-members">
+  <div class="section-header" style="padding-top:16px;">
+    <div class="section-title">Member</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-member')">+ Tambah</button>
+  </div>
+  <!-- NEW: Search -->
+  <div class="form-row">
+    <input type="text" placeholder="🔍 Cari nama member..." oninput="filterMembers(this.value)" style="margin-bottom:0;">
+  </div>
+  <div id="member-list" style="margin-top:10px;"></div>
+</div>
+
+<!-- ── EVALUASI ── -->
+<div class="page" id="page-eval">
+  <div style="padding:16px 0 8px;">
+    <div class="section-title">Input Evaluasi</div>
+    <div class="text-muted mt8">Admin input hasil laporan coach setelah sesi</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Detail Sesi</div>
+    <div class="form-row">
+      <label>Venue & Sesi</label>
+      <div class="sesi-list" id="sesi-chips"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-row"><label>Tanggal</label><input type="date" id="eval-date"></div>
+      <div class="form-row"><label>Total Peserta</label><input type="number" id="eval-total" placeholder="8" min="1" max="12"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Member yang Hadir</div>
+    <div id="eval-member-checkboxes" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <div id="eval-fields"></div>
+  </div>
+  <button class="btn btn-primary" id="save-eval-btn" onclick="saveEval()">Simpan Evaluasi</button>
+</div>
+
+<!-- ── MATCH (NEW PAGE) ── -->
+<div class="page" id="page-matches">
+  <div class="section-header" style="padding-top:16px;">
+    <div class="section-title">Hasil Match</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-match')">+ Catat</button>
+  </div>
+  <!-- Stats Row -->
+  <div class="stats-grid" id="match-stats-mini" style="margin-bottom:14px;"></div>
+  <div class="card">
+    <div class="card-title">Riwayat Pertandingan</div>
+    <div id="matches-list"></div>
+  </div>
+</div>
+
+<!-- ── WA ── -->
+<div class="page" id="page-wa">
+  <div style="padding:16px 0 8px;">
+    <div class="section-title">Generate WA</div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button class="btn btn-primary btn-sm" onclick="setWaTab('pra')" id="wa-tab-pra">Pra-Sesi (ke Coach)</button>
+    <button class="btn btn-secondary btn-sm" onclick="setWaTab('prog')" id="wa-tab-prog">Progress (ke Member)</button>
+    <!-- NEW: Cancel broadcast tab -->
+    <button class="btn btn-secondary btn-sm" onclick="setWaTab('cancel')" id="wa-tab-cancel">Cancel Sesi</button>
+  </div>
+
+  <!-- WA PRA-SESI -->
+  <div id="wa-pra">
+    <div class="card">
+      <div class="card-title">WA Admin → Coach</div>
+      <div class="form-row">
+        <label>Pilih Sesi</label>
+        <div class="sesi-list" id="wa-sesi-chips"></div>
+      </div>
+      <div class="form-row"><label>Tanggal & Jam</label><input type="text" id="wa-sesi-waktu" placeholder="Selasa, 3 Apr 2026 — 20.00"></div>
+      <div class="form-row">
+        <label>Member yang Booking</label>
+        <div id="wa-member-checks" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+      <div class="form-row mt12"><label>Nama Coach</label><input type="text" id="wa-coach-name" placeholder="Yayat"></div>
+      <button class="btn btn-secondary mt12" onclick="generateWaPra()">Generate WA</button>
+    </div>
+    <div id="wa-pra-result" style="display:none;">
+      <div class="wa-header"><span class="wa-label">WA ke Coach</span><button class="btn btn-primary btn-sm" onclick="copyWA('wa-pra-text')">Salin</button></div>
+      <div class="wa-box" id="wa-pra-text"></div>
+    </div>
+  </div>
+
+  <!-- WA PROGRESS -->
+  <div id="wa-prog" style="display:none;">
+    <div class="card">
+      <div class="card-title">WA Admin → Member</div>
+      <div class="form-row">
+        <label>Pilih Member</label>
+        <select id="wa-prog-member" onchange="loadWaProg()">
+          <option value="">-- Pilih Member --</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Periode</label><input type="text" id="wa-prog-periode" placeholder="Maret 2026"></div>
+    </div>
+    <div id="wa-prog-result" style="display:none;">
+      <div class="wa-header"><span class="wa-label" id="wa-prog-label">WA ke Member</span><button class="btn btn-primary btn-sm" onclick="copyWA('wa-prog-text')">Salin</button></div>
+      <div class="wa-box" id="wa-prog-text"></div>
+    </div>
+  </div>
+
+  <!-- WA CANCEL (NEW) -->
+  <div id="wa-cancel" style="display:none;">
+    <div class="card">
+      <div class="card-title">WA Cancel / Reschedule Sesi</div>
+      <div class="form-row">
+        <label>Pilih Sesi yang Dibatalkan</label>
+        <div class="sesi-list" id="wa-cancel-chips"></div>
+      </div>
+      <div class="form-row"><label>Tanggal Sesi Asal</label><input type="date" id="wa-cancel-date"></div>
+      <div class="form-row">
+        <label>Alasan</label>
+        <select id="wa-cancel-reason">
+          <option value="hujan">Hujan / Cuaca buruk</option>
+          <option value="lapangan">Lapangan tidak tersedia</option>
+          <option value="coach">Coach berhalangan</option>
+          <option value="lain">Lainnya</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Keterangan tambahan (opsional)</label><input type="text" id="wa-cancel-note" placeholder="cth: hujan deras dari siang..."></div>
+      <div class="form-row">
+        <label>Reschedule ke? (opsional)</label>
+        <input type="text" id="wa-cancel-reschedule" placeholder="cth: Jumat, 4 Apr 2026 — 20.00">
+      </div>
+      <div class="form-row">
+        <label>Pilih Member untuk Diinfo</label>
+        <div id="wa-cancel-member-checks" style="display:flex;flex-direction:column;gap:8px;margin-top:4px;"></div>
+      </div>
+      <button class="btn btn-secondary mt12" onclick="generateWaCancel()">Generate WA Cancel</button>
+    </div>
+    <div id="wa-cancel-result" style="display:none;">
+      <div class="wa-header"><span class="wa-label">WA Cancel ke Member</span><button class="btn btn-primary btn-sm" onclick="copyWA('wa-cancel-text')">Salin</button></div>
+      <div class="wa-box" id="wa-cancel-text"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main-app -->
+
+<!-- ═══════════════════ MODALS ═══════════════════ -->
+
+<!-- ADD MEMBER -->
+<div class="modal-overlay" id="modal-add-member">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Tambah Member Baru</div>
+    <div class="form-row"><label>Nama Lengkap</label><input type="text" id="m-name" placeholder="Andi Pratama"></div>
+    <div class="form-grid">
+      <div class="form-row"><label>No. HP / WA</label><input type="text" id="m-phone" placeholder="0812..."></div>
+      <div class="form-row"><label>Tier</label>
+        <select id="m-tier">
+          <option value="Starter">Starter (3 sesi)</option>
+          <option value="Regular" selected>Regular (5 sesi)</option>
+          <option value="Intensive">Intensive (8 sesi)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-row"><label>Level Awal</label>
+        <select id="m-level">
+          <option value="1">Level 1 — Newbie</option>
+          <option value="2">Level 2 — Beginner</option>
+          <option value="3">Level 3 — Upper Beginner</option>
+          <option value="4">Level 4 — Intermediate</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Tanggal Join</label><input type="date" id="m-join"></div>
+    </div>
+    <div class="form-row"><label>Catatan</label><textarea id="m-notes" placeholder="Kondisi fisik, riwayat olahraga..."></textarea></div>
+    <div class="gap8 mt12">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-member')">Batal</button>
+      <button class="btn btn-primary" onclick="saveMember()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MEMBER DETAIL -->
+<div class="modal-overlay" id="modal-member-detail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="modal-detail-content"></div>
+    <button class="btn btn-secondary mt12" onclick="closeModal('modal-member-detail')">Tutup</button>
+  </div>
+</div>
+
+<!-- ADD MATCH (NEW) -->
+<div class="modal-overlay" id="modal-add-match">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Catat Hasil Match</div>
+    <div class="form-grid">
+      <div class="form-row"><label>Pemenang 🏆</label>
+        <select id="match-winner"><option value="">Pilih...</option></select>
+      </div>
+      <div class="form-row"><label>Yang Kalah</label>
+        <select id="match-loser"><option value="">Pilih...</option></select>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-row"><label>Skor Pemenang</label><input type="text" id="match-score-w" placeholder="6-3, 6-4"></div>
+      <div class="form-row"><label>Skor Yang Kalah</label><input type="text" id="match-score-l" placeholder="3-6, 4-6"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-row"><label>Tipe</label>
+        <select id="match-type">
+          <option value="Singles">Singles</option>
+          <option value="Doubles">Doubles</option>
+          <option value="Mabar">Mabar</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Venue</label>
+        <select id="match-venue-sel">
+          <option value="PLN Duren Tiga">PLN Duren Tiga</option>
+          <option value="Beyond The Court">Beyond The Court</option>
+          <option value="Batan Pasar Minggu">Batan Pasar Minggu</option>
+          <option value="Lakespra Cawang">Lakespra Cawang</option>
+          <option value="Rindam Jaya">Rindam Jaya</option>
+          <option value="Kings Court">Kings Court</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row"><label>Tanggal</label><input type="date" id="match-date"></div>
+    <div class="form-row"><label>Catatan (opsional)</label><textarea id="match-notes" placeholder="Seru banget, tiebreak set 3..."></textarea></div>
+    <div class="gap8 mt12">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-match')">Batal</button>
+      <button class="btn btn-primary" onclick="saveMatch()">Simpan Match</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FIREBASE + APP LOGIC ═══════════════════ -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ─── CONFIG ────────────────────────────────────────────────
+const SESI_LIST = [
+  {id:'PLN_Sab',      label:'PLN Duren Tiga',     hari:'Sabtu',  jam:'06.00–08.00'},
+  {id:'BTC_Sel',      label:'Beyond The Court',   hari:'Selasa', jam:'20.00–22.00'},
+  {id:'Batan_Min',    label:'Batan Pasar Minggu', hari:'Minggu', jam:'07.00–10.00'},
+  {id:'Lakespra_Min', label:'Lakespra Cawang',    hari:'Minggu', jam:'16.00–18.00'},
+  {id:'Rindam_Sen',   label:'Rindam Jaya',         hari:'Senin',  jam:'19.00–21.00'},
+  {id:'Kings_Rab',    label:'Kings Court',         hari:'Rabu',   jam:'20.00–22.00'},
+  {id:'Kings_Sab',    label:'Kings Court',         hari:'Sabtu',  jam:'08.00–10.00'},
+  {id:'BTC_Sab',      label:'Beyond TC',           hari:'Sabtu',  jam:'16.00–18.00'},
+  {id:'Mabar_Kam',    label:'Mabar Kings Court',   hari:'Kamis',  jam:'20.00–23.00'},
+];
+const LEVEL_NAMES = {1:'Newbie', 2:'Beginner', 3:'Upper Beginner', 4:'Intermediate'};
+
+// ─── STATE ─────────────────────────────────────────────────
+let db = null;
+let members = [];
+let evals = [];
+let matches = [];
+let selectedSesi = '';
+let selectedMemberIds = new Set();
+let waSelectedSesi = '';
+let waCancelSesi = '';
+let allMembersSnapshot = [];
+
+// ─── INIT ──────────────────────────────────────────────────
+function init() {
+  const cfg = localStorage.getItem('fb_config');
+  const pin = localStorage.getItem('fb_pin');
+  if (!cfg || !pin) { showSetup(); return; }
+  showLogin();
+}
+
+function showSetup() {
+  document.getElementById('setup-screen').style.display = '';
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'none';
+}
+function showLogin() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = '';
+  document.getElementById('main-app').style.display = 'none';
+  setTimeout(() => document.getElementById('login-pin').focus(), 100);
+}
+function showApp() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = '';
+  startFirebase();
+}
+
+window.saveConfig = function() {
+  const raw = document.getElementById('firebase-config-input').value.trim();
+  const pin = document.getElementById('admin-pin-input').value.trim();
+  const errEl = document.getElementById('setup-error');
+  errEl.style.display = 'none';
+  if (!pin || pin.length < 4) { errEl.textContent = 'PIN minimal 4 digit'; errEl.style.display = ''; return; }
+  try {
+    // Extract object if wrapped in const firebaseConfig = {...}
+    let cfg = raw;
+    const objMatch = raw.match(/\{[\s\S]*\}/);
+    if (objMatch) cfg = objMatch[0];
+
+    // Convert JS object keys to JSON: only replace keys (word before colon, not inside strings)
+    // Replace unquoted keys like:  apiKey: -> "apiKey":
+    cfg = cfg.replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
+    // Replace single quotes with double quotes for values
+    cfg = cfg.replace(/:\s*'([^']*)'/g, ': "$1"');
+
+    const parsed = JSON.parse(cfg);
+    // Validate required fields
+    if (!parsed.apiKey || !parsed.projectId) throw new Error('Missing required fields');
+    localStorage.setItem('fb_config', JSON.stringify(parsed));
+    localStorage.setItem('fb_pin', pin);
+    showApp();
+  } catch(e) {
+    errEl.textContent = 'Format config tidak valid. Pastikan copy seluruh isi objek firebaseConfig { ... }';
+    errEl.style.display = '';
+  }
+};
+window.checkPin = function() {
+  const pin = document.getElementById('login-pin').value;
+  if (pin === localStorage.getItem('fb_pin')) {
+    document.getElementById('login-error').style.display = 'none';
+    showApp();
+  } else {
+    document.getElementById('login-error').style.display = '';
+    document.getElementById('login-pin').value = '';
+  }
+};
+window.resetConfig = function() {
+  if (!confirm('Reset konfigurasi? Kamu perlu setup ulang Firebase config.')) return;
+  localStorage.removeItem('fb_config');
+  localStorage.removeItem('fb_pin');
+  showSetup();
+};
+
+function startFirebase() {
+  try {
+    const cfg = JSON.parse(localStorage.getItem('fb_config'));
+    const app = initializeApp(cfg);
+    db = getFirestore(app);
+    document.getElementById('sync-status').textContent = '● Terhubung';
+    subscribeData();
+    renderEvalPage();
+    renderWaPage();
+  } catch(e) {
+    document.getElementById('sync-status').textContent = '✕ Gagal konek';
+    toast('Gagal konek Firebase. Cek config.');
+  }
+}
+
+function subscribeData() {
+  onSnapshot(query(collection(db,'members'), orderBy('createdAt','asc')), snap => {
+    members = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    allMembersSnapshot = [...members];
+    renderMembers();
+    renderDashboard();
+    updateWaMemberChecks();
+    updateWaProgSelect();
+    updateWaCancelMemberChecks();
+    updateEvalMemberChecks();
+    updateMatchSelects();
+  });
+  onSnapshot(query(collection(db,'evals'), orderBy('date','desc')), snap => {
+    evals = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderDashboard();
+  });
+  onSnapshot(query(collection(db,'matches'), orderBy('date','desc')), snap => {
+    matches = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderMatches();
+    renderDashboard();
+  });
+}
+
+// ─── HELPERS ───────────────────────────────────────────────
+function initials(name) { return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function formatDate(s) { if(!s) return '–'; try { return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); } catch(e) { return s; } }
+function getSesiLabel(id) { const s=SESI_LIST.find(x=>x.id===id); return s?`${s.label} (${s.hari})`:id; }
+function toast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+function getMemberWinRate(memberId) {
+  const mMatches = matches.filter(m => m.winnerId===memberId || m.loserId===memberId);
+  if(!mMatches.length) return null;
+  const wins = mMatches.filter(m => m.winnerId===memberId).length;
+  return {wins, total: mMatches.length, rate: Math.round(wins/mMatches.length*100)};
+}
+
+// ─── NAV ───────────────────────────────────────────────────
+window.showPage = function(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  ['dashboard','members','eval','matches','wa'].forEach((p,i)=>{
+    if(p===id) document.querySelectorAll('.nav-tab')[i].classList.add('active');
+  });
+  if(id==='eval') renderEvalPage();
+  if(id==='wa') renderWaPage();
+  if(id==='matches') renderMatchPage();
+};
+
+window.openModal = function(id) {
+  document.getElementById(id).classList.add('open');
+  if(id==='modal-add-member') document.getElementById('m-join').value = new Date().toISOString().split('T')[0];
+  if(id==='modal-add-match') {
+    document.getElementById('match-date').value = new Date().toISOString().split('T')[0];
+    updateMatchSelects();
+  }
+};
+window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); };
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+
+// ─── MEMBERS ───────────────────────────────────────────────
+window.saveMember = async function() {
+  const name = document.getElementById('m-name').value.trim();
+  if(!name){ toast('Nama wajib diisi'); return; }
+  if(!db){ toast('Database belum terhubung'); return; }
+  await addDoc(collection(db,'members'),{
+    name, phone: document.getElementById('m-phone').value.trim(),
+    tier: document.getElementById('m-tier').value,
+    level: parseInt(document.getElementById('m-level').value),
+    join: document.getElementById('m-join').value,
+    notes: document.getElementById('m-notes').value.trim(),
+    createdAt: new Date().toISOString()
+  });
+  closeModal('modal-add-member');
+  ['m-name','m-phone','m-notes'].forEach(id=>document.getElementById(id).value='');
+  toast('Member '+name+' ditambahkan!');
+};
+window.deleteMember = async function(id) {
+  if(!confirm('Hapus member ini?')) return;
+  await deleteDoc(doc(db,'members',id));
+  toast('Member dihapus');
+};
+
+window.filterMembers = function(q) {
+  const filtered = q ? allMembersSnapshot.filter(m => m.name.toLowerCase().includes(q.toLowerCase())) : allMembersSnapshot;
+  renderMemberList(filtered);
+};
+
+function renderMembers() { renderMemberList(members); }
+
+function renderMemberList(list) {
+  const el = document.getElementById('member-list');
+  if(!list.length){
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🎾</div><div>Belum ada member.</div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="card">${list.map(m => {
+    const mEvals = evals.filter(e=>e.entries?.some(en=>en.memberId===m.id));
+    const wr = getMemberWinRate(m.id);
+    const tc = m.tier==='Starter'?'starter':m.tier==='Regular'?'regular':'intensive';
+    return `<div class="member-item">
+      <div class="member-avatar">${initials(m.name)}</div>
+      <div class="member-info">
+        <div class="member-name">${m.name}</div>
+        <div class="member-sub">
+          <span class="pill pill-${tc}">${m.tier}</span>
+          <span class="pill pill-${m.level}">${LEVEL_NAMES[m.level]}</span>
+          · ${mEvals.length} eval
+          ${wr ? `· <span style="color:var(--green);font-weight:600;">${wr.rate}% WR</span>` : ''}
+        </div>
+      </div>
+      <div class="member-actions">
+        <button class="btn btn-secondary btn-sm" onclick="showMemberDetail('${m.id}')">Detail</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMember('${m.id}')">Hapus</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+window.showMemberDetail = function(memberId) {
+  const m = members.find(x=>x.id===memberId); if(!m) return;
+  const mEvals = evals.filter(e=>e.entries?.some(en=>en.memberId===memberId))
+    .map(ev=>({...ev, entry:ev.entries.find(e=>e.memberId===memberId)}))
+    .sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const wr = getMemberWinRate(memberId);
+  const mMatches = matches.filter(ma => ma.winnerId===memberId || ma.loserId===memberId);
+  const dots = [1,2,3,4].map(l=>`<div class="level-dot ${l<=m.level?'filled':''}"></div>`).join('');
+  const hist = mEvals.length ? mEvals.slice(0,8).map(ev=>`
+    <div class="history-item">
+      <div class="history-date">${formatDate(ev.date)} · <span style="color:var(--green);font-weight:500;">${getSesiLabel(ev.sesiId)}</span></div>
+      <div class="history-content"><b>+</b> ${ev.entry.plus}<br><b>›</b> ${ev.entry.next}<br><span class="pill pill-${ev.entry.level}">Level ${ev.entry.level} — ${LEVEL_NAMES[ev.entry.level]}</span></div>
+    </div>`).join('') : '<div class="text-muted">Belum ada evaluasi</div>';
+
+  // Match history for this member
+  const matchHist = mMatches.length ? mMatches.slice(0,5).map(ma => {
+    const isWin = ma.winnerId === memberId;
+    const opponent = isWin ? ma.loserName : ma.winnerName;
+    return `<div class="history-item">
+      <div class="history-date">${formatDate(ma.date)} · ${ma.type||'Singles'} · ${ma.venue||'—'}</div>
+      <div class="history-content" style="display:flex;align-items:center;gap:8px;">
+        <span class="${isWin?'badge-win':'badge-loss'}">${isWin?'WIN':'LOSE'}</span>
+        <span>vs ${opponent}</span>
+        ${ma.scoreWinner?`<span style="color:var(--muted);font-size:12px;">${isWin?ma.scoreWinner:ma.scoreLoser} / ${isWin?ma.scoreLoser:ma.scoreWinner}</span>`:''}
+      </div>
+    </div>`;
+  }).join('') : '<div class="text-muted">Belum ada match tercatat</div>';
+
+  document.getElementById('modal-detail-content').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div class="member-avatar" style="width:52px;height:52px;font-size:18px;">${initials(m.name)}</div>
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:20px;">${m.name}</div>
+        <div class="text-muted">${m.phone||'–'} · Join ${formatDate(m.join)}</div>
+        <div style="margin-top:4px;"><span class="pill pill-${m.tier.toLowerCase()}">${m.tier}</span> <span class="pill pill-${m.level}">${LEVEL_NAMES[m.level]}</span></div>
+        <div class="level-bar">${dots}</div>
+      </div>
+    </div>
+    ${wr ? `<div style="display:flex;gap:16px;margin-bottom:12px;background:var(--green-pale);border-radius:10px;padding:10px 14px;">
+      <div><div class="stat-label">Match</div><div style="font-size:20px;font-weight:600;color:var(--green)">${wr.total}</div></div>
+      <div><div class="stat-label">Win</div><div style="font-size:20px;font-weight:600;color:var(--green)">${wr.wins}</div></div>
+      <div><div class="stat-label">Win Rate</div><div style="font-size:20px;font-weight:600;color:var(--green)">${wr.rate}%</div></div>
+    </div>` : ''}
+    ${m.notes?`<div class="text-muted" style="margin-bottom:12px;">📝 ${m.notes}</div>`:''}
+    <div class="divider"></div>
+    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">🏆 Match Terakhir</div>${matchHist}
+    <div class="divider"></div>
+    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">📋 History Evaluasi</div>${hist}`;
+  openModal('modal-member-detail');
+};
+
+// ─── EVAL ──────────────────────────────────────────────────
+function renderEvalPage() {
+  document.getElementById('eval-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('sesi-chips').innerHTML = SESI_LIST.map(s=>
+    `<div class="sesi-chip ${selectedSesi===s.id?'selected':''}" onclick="selectSesi('${s.id}')">${s.label} ${s.hari}</div>`
+  ).join('');
+  updateEvalMemberChecks();
+}
+function updateEvalMemberChecks() {
+  document.getElementById('eval-member-checkboxes').innerHTML = members.length
+    ? members.map(m=>`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" value="${m.id}" onchange="toggleEvalMember('${m.id}',this.checked)" ${selectedMemberIds.has(m.id)?'checked':''} style="width:auto;cursor:pointer;">
+        <span>${m.name} <span class="pill pill-${m.level}" style="font-size:10px;">${LEVEL_NAMES[m.level]}</span></span>
+      </label>`).join('')
+    : '<div class="text-muted">Belum ada member</div>';
+  renderEvalFields();
+}
+window.selectSesi = function(id) { selectedSesi=id; renderEvalPage(); };
+window.toggleEvalMember = function(id,checked) {
+  if(checked) selectedMemberIds.add(id); else selectedMemberIds.delete(id);
+  renderEvalFields();
+};
+function renderEvalFields() {
+  const fields = document.getElementById('eval-fields');
+  if(!selectedMemberIds.size){ fields.innerHTML=''; return; }
+  fields.innerHTML = [...selectedMemberIds].map(mid=>{
+    const m = members.find(x=>x.id===mid); if(!m) return '';
+    return `<div class="divider"></div>
+    <div style="font-weight:600;font-size:14px;margin-bottom:10px;">${m.name}</div>
+    <div class="form-row"><label>Yang sudah bagus (+)</label><textarea id="ef-plus-${mid}" placeholder="Forehand sudah konsisten..."></textarea></div>
+    <div class="form-row"><label>Fokus latihan berikutnya (›)</label><textarea id="ef-next-${mid}" placeholder="Perlu latih backhand..."></textarea></div>
+    <div class="form-row"><label>Level saat ini</label>
+      <select id="ef-level-${mid}">${[1,2,3,4].map(l=>`<option value="${l}" ${m.level===l?'selected':''}>${l} — ${LEVEL_NAMES[l]}</option>`).join('')}</select>
+    </div>`;
+  }).join('');
+}
+window.saveEval = async function() {
+  if(!selectedSesi){ toast('Pilih sesi dulu'); return; }
+  if(!selectedMemberIds.size){ toast('Pilih minimal 1 member'); return; }
+  if(!db){ toast('Database belum terhubung'); return; }
+  const btn = document.getElementById('save-eval-btn');
+  btn.innerHTML='<span class="spinner"></span> Menyimpan...'; btn.disabled=true;
+  const entries = [...selectedMemberIds].map(mid=>({
+    memberId: mid,
+    plus: document.getElementById('ef-plus-'+mid)?.value.trim()||'',
+    next: document.getElementById('ef-next-'+mid)?.value.trim()||'',
+    level: parseInt(document.getElementById('ef-level-'+mid)?.value||1)
+  }));
+  for(const entry of entries) {
+    await setDoc(doc(db,'members',entry.memberId),{level:entry.level},{merge:true});
+  }
+  await addDoc(collection(db,'evals'),{
+    sesiId: selectedSesi,
+    date: document.getElementById('eval-date').value,
+    total: document.getElementById('eval-total').value||'',
+    entries, createdAt: new Date().toISOString()
+  });
+  selectedSesi=''; selectedMemberIds=new Set();
+  btn.innerHTML='Simpan Evaluasi'; btn.disabled=false;
+  renderEvalPage();
+  toast('Evaluasi tersimpan & tersinkron!');
+};
+
+// ─── MATCHES (NEW) ─────────────────────────────────────────
+function updateMatchSelects() {
+  const opts = '<option value="">Pilih member...</option>' + members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  ['match-winner','match-loser'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = opts;
+  });
+}
+window.saveMatch = async function() {
+  const winnerId = document.getElementById('match-winner').value;
+  const loserId = document.getElementById('match-loser').value;
+  if(!winnerId||!loserId){ toast('Pilih kedua pemain'); return; }
+  if(winnerId===loserId){ toast('Pemain tidak boleh sama'); return; }
+  if(!db){ toast('Database belum terhubung'); return; }
+  const winnerName = members.find(m=>m.id===winnerId)?.name||'';
+  const loserName = members.find(m=>m.id===loserId)?.name||'';
+  await addDoc(collection(db,'matches'),{
+    winnerId, winnerName,
+    loserId, loserName,
+    scoreWinner: document.getElementById('match-score-w').value.trim(),
+    scoreLoser: document.getElementById('match-score-l').value.trim(),
+    type: document.getElementById('match-type').value,
+    venue: document.getElementById('match-venue-sel').value,
+    date: document.getElementById('match-date').value,
+    notes: document.getElementById('match-notes').value.trim(),
+    createdAt: new Date().toISOString()
+  });
+  closeModal('modal-add-match');
+  ['match-score-w','match-score-l','match-notes'].forEach(id=>document.getElementById(id).value='');
+  toast(`Match ${winnerName} vs ${loserName} disimpan!`);
+};
+window.deleteMatch = async function(id) {
+  if(!confirm('Hapus data match ini?')) return;
+  await deleteDoc(doc(db,'matches',id));
+  toast('Match dihapus');
+};
+
+function renderMatchPage() {
+  // mini stats
+  const totalMatch = matches.length;
+  const singles = matches.filter(m=>m.type==='Singles').length;
+  document.getElementById('match-stats-mini').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total Match</div><div class="stat-value">${totalMatch}</div><div class="stat-sub">tercatat</div></div>
+    <div class="stat-card"><div class="stat-label">Singles</div><div class="stat-value">${singles}</div><div class="stat-sub">dari total match</div></div>`;
+}
+
+function renderMatches() {
+  const el = document.getElementById('matches-list');
+  if(!el) return;
+  if(!matches.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">🏆</div><div>Belum ada match tercatat.</div></div>';
+    return;
+  }
+  el.innerHTML = matches.map(m=>`
+    <div class="match-item">
+      <div class="match-item-header">
+        <div class="match-players">
+          <span class="badge-win">${m.winnerName}</span>
+          <span style="color:var(--muted);font-size:12px;margin:0 4px;">vs</span>
+          <span style="color:var(--muted)">${m.loserName}</span>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="deleteMatch('${m.id}')">Hapus</button>
+      </div>
+      <div class="match-meta">
+        ${formatDate(m.date)} · ${m.type} · ${m.venue}
+        ${m.scoreWinner?`<span class="match-score-display" style="margin-left:6px;">| ${m.scoreWinner} / ${m.scoreLoser}</span>`:''}
+      </div>
+      ${m.notes?`<div class="text-muted" style="margin-top:4px;">📝 ${m.notes}</div>`:''}
+    </div>`).join('');
+}
+
+// ─── DASHBOARD ─────────────────────────────────────────────
+function renderDashboard() {
+  if(!document.getElementById('page-dashboard').classList.contains('active')) return;
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  const lc={1:0,2:0,3:0,4:0};
+  members.forEach(m=>lc[m.level]=(lc[m.level]||0)+1);
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total Member</div><div class="stat-value">${members.length}</div><div class="stat-sub">terdaftar</div></div>
+    <div class="stat-card"><div class="stat-label">Total Evaluasi</div><div class="stat-value">${evals.length}</div><div class="stat-sub">sesi tercatat</div></div>
+    <div class="stat-card"><div class="stat-label">Total Match</div><div class="stat-value">${matches.length}</div><div class="stat-sub">pertandingan</div></div>
+    <div class="stat-card"><div class="stat-label">Starter</div><div class="stat-value" style="color:#0369A1;">${members.filter(m=>m.tier==='Starter').length}</div><div class="stat-sub">member</div></div>`;
+
+  document.getElementById('level-dist').innerHTML = !members.length ? '<div class="text-muted">Belum ada member</div>'
+    : [1,2,3,4].map(l=>{
+      const ct=lc[l]||0, pct=members.length?Math.round(ct/members.length*100):0;
+      return `<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span><span class="pill pill-${l}">${LEVEL_NAMES[l]}</span></span><span style="color:var(--muted)">${ct} member</span></div><div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--green-light);border-radius:3px;"></div></div></div>`;
+    }).join('');
+
+  // Leaderboard
+  const withStats = members.map(m=>{
+    const wr=getMemberWinRate(m.id);
+    return {...m, wr};
+  }).filter(m=>m.wr && m.wr.total>=1).sort((a,b)=>b.wr.rate-a.wr.rate).slice(0,5);
+
+  const lbCard = document.getElementById('leaderboard-card');
+  if(withStats.length) {
+    lbCard.style.display='';
+    const medals=['🥇','🥈','🥉','4️⃣','5️⃣'];
+    document.getElementById('leaderboard-list').innerHTML = withStats.map((m,i)=>`
+      <div class="rank-row">
+        <div class="rank-num">${medals[i]||i+1}</div>
+        <div class="member-avatar" style="width:32px;height:32px;font-size:12px;">${initials(m.name)}</div>
+        <div class="rank-name">${m.name} <span class="pill pill-${m.level}" style="font-size:10px;">${LEVEL_NAMES[m.level]}</span></div>
+        <div class="wr-bar"><div class="wr-bar-fill" style="width:${m.wr.rate}%;"></div></div>
+        <div class="rank-wr">${m.wr.rate}%</div>
+      </div>`).join('');
+  } else { lbCard.style.display='none'; }
+
+  // Recent Evals
+  const recent = [...evals].slice(0,4);
+  document.getElementById('recent-evals').innerHTML = recent.length
+    ? recent.map(ev=>{
+        const names = ev.entries?.map(e=>{const m=members.find(x=>x.id===e.memberId);return m?m.name:'?';}).join(', ')||'–';
+        return `<div class="history-item"><div class="history-date">${formatDate(ev.date)} · ${getSesiLabel(ev.sesiId)}</div><div class="history-content">Member: ${names} ${ev.total?'· '+ev.total+' peserta':''}</div></div>`;
+      }).join('')
+    : '<div class="text-muted">Belum ada evaluasi</div>';
+
+  // Recent Matches on Dashboard
+  const dashMatchCard = document.getElementById('dash-matches-card');
+  const recentMatches = matches.slice(0,3);
+  if(recentMatches.length) {
+    dashMatchCard.style.display='';
+    document.getElementById('dash-recent-matches').innerHTML = recentMatches.map(m=>`
+      <div class="match-item">
+        <div class="match-item-header">
+          <div class="match-players"><span class="badge-win">${m.winnerName}</span> <span style="color:var(--muted);font-size:12px">vs</span> <span style="color:var(--muted)">${m.loserName}</span></div>
+        </div>
+        <div class="match-meta">${formatDate(m.date)} · ${m.type} · ${m.venue}${m.scoreWinner?` | ${m.scoreWinner}/${m.scoreLoser}`:''}</div>
+      </div>`).join('');
+  } else { dashMatchCard.style.display='none'; }
+}
+
+// ─── WA ────────────────────────────────────────────────────
+function renderWaPage() {
+  document.getElementById('wa-sesi-chips').innerHTML = SESI_LIST.map(s=>
+    `<div class="sesi-chip" onclick="selectWaSesi('${s.id}',this)">${s.label} ${s.hari}</div>`).join('');
+  document.getElementById('wa-cancel-chips').innerHTML = SESI_LIST.map(s=>
+    `<div class="sesi-chip" onclick="selectWaCancelSesi('${s.id}',this)">${s.label} ${s.hari}</div>`).join('');
+  updateWaMemberChecks();
+  updateWaProgSelect();
+  updateWaCancelMemberChecks();
+  document.getElementById('wa-prog-periode').value = new Date().toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  document.getElementById('wa-cancel-date').value = new Date().toISOString().split('T')[0];
+}
+function updateWaMemberChecks() {
+  document.getElementById('wa-member-checks').innerHTML = members.map(m=>
+    `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+      <input type="checkbox" value="${m.id}" style="width:auto;cursor:pointer;">
+      <span>${m.name} <span class="pill pill-${m.level}" style="font-size:10px;">${LEVEL_NAMES[m.level]}</span></span>
+    </label>`).join('')||'<div class="text-muted">Belum ada member</div>';
+}
+function updateWaProgSelect() {
+  const sel = document.getElementById('wa-prog-member'); if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">-- Pilih Member --</option>'+members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  if(cur) sel.value=cur;
+}
+function updateWaCancelMemberChecks() {
+  const el = document.getElementById('wa-cancel-member-checks'); if(!el) return;
+  el.innerHTML = members.map(m=>
+    `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+      <input type="checkbox" value="${m.id}" style="width:auto;cursor:pointer;" checked>
+      <span>${m.name}</span>
+    </label>`).join('')||'<div class="text-muted">Belum ada member</div>';
+}
+
+window.selectWaSesi = function(id,el) {
+  waSelectedSesi=id;
+  document.querySelectorAll('#wa-sesi-chips .sesi-chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  const s=SESI_LIST.find(x=>x.id===id);
+  if(s) document.getElementById('wa-sesi-waktu').value=`${s.hari}, ${s.jam}`;
+};
+window.selectWaCancelSesi = function(id,el) {
+  waCancelSesi=id;
+  document.querySelectorAll('#wa-cancel-chips .sesi-chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+};
+
+window.setWaTab = function(tab) {
+  document.getElementById('wa-pra').style.display=tab==='pra'?'':'none';
+  document.getElementById('wa-prog').style.display=tab==='prog'?'':'none';
+  document.getElementById('wa-cancel').style.display=tab==='cancel'?'':'none';
+  document.getElementById('wa-tab-pra').className='btn btn-sm '+(tab==='pra'?'btn-primary':'btn-secondary');
+  document.getElementById('wa-tab-prog').className='btn btn-sm '+(tab==='prog'?'btn-primary':'btn-secondary');
+  document.getElementById('wa-tab-cancel').className='btn btn-sm '+(tab==='cancel'?'btn-primary':'btn-secondary');
+};
+
+window.generateWaPra = function() {
+  if(!waSelectedSesi){toast('Pilih sesi dulu');return;}
+  const sesi=SESI_LIST.find(s=>s.id===waSelectedSesi);
+  const waktu=document.getElementById('wa-sesi-waktu').value;
+  const coach=document.getElementById('wa-coach-name').value||'Coach';
+  const checked=[...document.querySelectorAll('#wa-member-checks input:checked')].map(i=>i.value);
+  const memberList=checked.map(id=>{const m=members.find(x=>x.id===id);return m?`- ${m.name} — Level ${m.level} (${LEVEL_NAMES[m.level]})`:null;}).filter(Boolean);
+  const text=`Sesi ${sesi.label} ${waktu} — siap dimulai!\n\nMEMBER (pakai pass):\n${memberList.length?memberList.join('\n'):'- (tidak ada member terdaftar)'}\n\nDROP-IN: cek booking Kuyy\n\nSemangat ${coach}! 🎾`;
+  document.getElementById('wa-pra-text').textContent=text;
+  document.getElementById('wa-pra-result').style.display='';
+};
+
+window.loadWaProg = function() {
+  const memberId=document.getElementById('wa-prog-member').value;
+  if(!memberId){document.getElementById('wa-prog-result').style.display='none';return;}
+  const m=members.find(x=>x.id===memberId); if(!m)return;
+  const mEvals=evals.filter(e=>e.entries?.some(en=>en.memberId===memberId))
+    .map(ev=>({...ev,entry:ev.entries.find(e=>e.memberId===memberId)}))
+    .sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const latest=mEvals[0];
+  const periode=document.getElementById('wa-prog-periode').value;
+  const sesiCount=mEvals.length;
+  const prevLevel=mEvals[1]?.entry?.level;
+  const naik=prevLevel && m.level>prevLevel;
+  const wr=getMemberWinRate(memberId);
+  const wrText=wr?`\n📊 Match record: ${wr.wins}W / ${wr.total-wr.wins}L (Win rate: ${wr.rate}%)`:'';
+  let text='';
+  if(naik){
+    text=`Halo ${m.name}! Ada kabar bagus dari coach! 🎉\n\nPeriode: ${periode}\nSesi yang dihadiri: ${sesiCount} sesi${wrText}\n\n⬆️ SELAMAT, kamu NAIK LEVEL!\nLevel sebelumnya: ${LEVEL_NAMES[prevLevel]}\nLevel sekarang: ${LEVEL_NAMES[m.level]} 🏆\n\n${latest?`Yang bikin coach terkesan:\n${latest.entry.plus}\n\nFokus latihan bulan depan:\n${latest.entry.next}`:''}\n\nKeren banget progresnya ${m.name.split(' ')[0]}! Terus hadir ya biar makin tajam 💪`;
+  } else {
+    text=`Halo ${m.name}! Berikut update progress latihan kamu.\n\nPeriode: ${periode}\nSesi yang dihadiri: ${sesiCount} sesi\nLevel saat ini: ${LEVEL_NAMES[m.level]}${wrText}\n\n${latest?`Yang sudah bagus:\n${latest.entry.plus}\n\nFokus latihan bulan depan:\n${latest.entry.next}`:'Belum ada catatan evaluasi bulan ini.'}\n\nSemangat terus ${m.name.split(' ')[0]}! Kalau ada pertanyaan, langsung tanya coach di sesi berikutnya ya 🎾`;
+  }
+  document.getElementById('wa-prog-label').textContent=naik?'🌟 WA Naik Level — '+m.name:'WA Progress — '+m.name;
+  document.getElementById('wa-prog-text').textContent=text;
+  document.getElementById('wa-prog-result').style.display='';
+};
+
+window.generateWaCancel = function() {
+  if(!waCancelSesi){toast('Pilih sesi yang dibatalkan');return;}
+  const sesi=SESI_LIST.find(s=>s.id===waCancelSesi);
+  const tglRaw=document.getElementById('wa-cancel-date').value;
+  const tgl=tglRaw?new Date(tglRaw).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):sesi.hari;
+  const reason=document.getElementById('wa-cancel-reason').value;
+  const note=document.getElementById('wa-cancel-note').value.trim();
+  const reschedule=document.getElementById('wa-cancel-reschedule').value.trim();
+  const reasonMap={
+    hujan:'⛈️ kondisi cuaca buruk / hujan',
+    lapangan:'🏟️ lapangan tidak tersedia',
+    coach:'👨‍🏫 coach berhalangan hadir',
+    lain:'kondisi mendadak'
+  };
+  const checked=[...document.querySelectorAll('#wa-cancel-member-checks input:checked')].map(i=>i.value);
+  const memberNames=checked.map(id=>members.find(x=>x.id===id)?.name).filter(Boolean);
+  let text=`Halo ${memberNames.length===1?memberNames[0]:'teman-teman'}! 🙏\n\nMohon maaf, sesi *${sesi.label} — ${tgl}* terpaksa *DIBATALKAN* karena ${reasonMap[reason]||'kondisi mendadak'}${note?` (${note})`:''}.\n\n`;
+  if(reschedule){
+    text+=`📅 *Reschedule:* Sesi akan diganti pada *${reschedule}*.\nMohon update booking di Kuyy ya.\n\n`;
+  } else {
+    text+=`Untuk refund atau reschedule, silakan hubungi admin. Saldo di Kuyy akan tetap aman dan bisa digunakan untuk sesi berikutnya.\n\n`;
+  }
+  text+=`Terima kasih atas pengertiannya. Sampai jumpa di sesi berikutnya! 🎾`;
+  document.getElementById('wa-cancel-text').textContent=text;
+  document.getElementById('wa-cancel-result').style.display='';
+};
+
+window.copyWA = function(elId) {
+  const text=document.getElementById(elId).textContent;
+  navigator.clipboard.writeText(text).then(()=>toast('Teks WA disalin!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);toast('Teks WA disalin!');
+  });
+};
+
+// ─── START ─────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
