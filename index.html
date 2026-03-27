@@ -179,40 +179,17 @@
 <div id="setup-screen" style="display:none;">
   <div class="setup-screen">
     <div class="setup-card">
-      <div class="setup-title">🎾 Setup Firebase</div>
-      <div class="setup-sub">Tempel konfigurasi Firebase kamu di bawah ini agar data tersinkron antar HP.</div>
-      <div class="setup-step">
-        <strong>Langkah 1 — Buat Firebase Project</strong>
-        Buka <b>console.firebase.google.com</b> → Add project → beri nama → Next → Create
-      </div>
-      <div class="setup-step">
-        <strong>Langkah 2 — Aktifkan Firestore</strong>
-        Klik <b>Firestore Database</b> → Create database → Start in test mode → pilih <b>asia-southeast1</b> → Enable
-      </div>
-      <div class="setup-step">
-        <strong>Langkah 3 — Ambil Config</strong>
-        Klik ikon gear → Project Settings → scroll bawah → Add app → pilih Web (&lt;/&gt;) → Register → copy bagian <b>firebaseConfig</b>
-      </div>
-      <div class="setup-step">
-        <strong>Langkah 4 — Paste di sini</strong>
-        Paste seluruh objek firebaseConfig ke kolom di bawah ini, lalu buat PIN.
-      </div>
-      <div class="form-row" style="margin-top:16px;">
-        <label>Paste firebaseConfig di sini</label>
-        <textarea id="firebase-config-input" style="min-height:160px;font-family:monospace;font-size:12px;" placeholder='{
-  "apiKey": "AIza...",
-  "authDomain": "project.firebaseapp.com",
-  "projectId": "project-id",
-  "storageBucket": "project.appspot.com",
-  "messagingSenderId": "123456",
-  "appId": "1:123..."
-}'></textarea>
+      <div class="setup-title">🎾 TennisTracker</div>
+      <div class="setup-sub">Buat PIN untuk mengamankan akses app ini. PIN hanya perlu dibuat sekali.</div>
+      <div class="form-row" style="margin-top:8px;">
+        <label>Buat PIN Admin (4–6 digit)</label>
+        <input type="password" id="admin-pin-input" placeholder="contoh: 1234" maxlength="6" onkeydown="if(event.key==='Enter')saveConfig()">
       </div>
       <div class="form-row">
-        <label>PIN Admin (4–6 digit)</label>
-        <input type="password" id="admin-pin-input" placeholder="contoh: 1234" maxlength="6">
+        <label>Konfirmasi PIN</label>
+        <input type="password" id="admin-pin-confirm" placeholder="ulangi PIN" maxlength="6" onkeydown="if(event.key==='Enter')saveConfig()">
       </div>
-      <button class="btn btn-primary" onclick="saveConfig()">Simpan & Mulai</button>
+      <button class="btn btn-primary" onclick="saveConfig()">Mulai Pakai App</button>
       <div id="setup-error" style="color:var(--red);font-size:13px;margin-top:10px;display:none;"></div>
     </div>
   </div>
@@ -231,7 +208,7 @@
       <button class="btn btn-primary" onclick="checkPin()">Masuk</button>
       <div id="login-error" style="color:var(--red);font-size:13px;margin-top:10px;display:none;">PIN salah, coba lagi.</div>
       <div style="margin-top:16px;">
-        <button class="btn btn-secondary btn-sm" onclick="resetConfig()" style="width:100%;">Reset Konfigurasi Firebase</button>
+        <button class="btn btn-secondary btn-sm" onclick="resetConfig()" style="width:100%;">Lupa PIN? Reset di sini</button>
       </div>
     </div>
   </div>
@@ -547,11 +524,23 @@ let waSelectedSesi = '';
 let waCancelSesi = '';
 let allMembersSnapshot = [];
 
+// ─── FIREBASE CONFIG PERMANEN ──────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDEbx96pU1mw93S3hacNHAEcITjD2vqYw8",
+  authDomain: "mvp-tennis-member-tracker.firebaseapp.com",
+  projectId: "mvp-tennis-member-tracker",
+  storageBucket: "mvp-tennis-member-tracker.firebasestorage.app",
+  messagingSenderId: "871807758862",
+  appId: "1:871807758862:web:a7221f2f6d5f9bd6b3425f",
+  measurementId: "G-26VFF527YJ"
+};
+
 // ─── INIT ──────────────────────────────────────────────────
 function init() {
-  const cfg = localStorage.getItem('fb_config');
+  // Selalu pakai config permanen, simpan ke localStorage
+  localStorage.setItem('fb_config', JSON.stringify(FIREBASE_CONFIG));
   const pin = localStorage.getItem('fb_pin');
-  if (!cfg || !pin) { showSetup(); return; }
+  if (!pin) { showSetup(); return; } // Hanya minta setup PIN pertama kali
   showLogin();
 }
 
@@ -574,33 +563,14 @@ function showApp() {
 }
 
 window.saveConfig = function() {
-  const raw = document.getElementById('firebase-config-input').value.trim();
   const pin = document.getElementById('admin-pin-input').value.trim();
+  const confirm = document.getElementById('admin-pin-confirm').value.trim();
   const errEl = document.getElementById('setup-error');
   errEl.style.display = 'none';
   if (!pin || pin.length < 4) { errEl.textContent = 'PIN minimal 4 digit'; errEl.style.display = ''; return; }
-  try {
-    // Extract object if wrapped in const firebaseConfig = {...}
-    let cfg = raw;
-    const objMatch = raw.match(/\{[\s\S]*\}/);
-    if (objMatch) cfg = objMatch[0];
-
-    // Convert JS object keys to JSON: only replace keys (word before colon, not inside strings)
-    // Replace unquoted keys like:  apiKey: -> "apiKey":
-    cfg = cfg.replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
-    // Replace single quotes with double quotes for values
-    cfg = cfg.replace(/:\s*'([^']*)'/g, ': "$1"');
-
-    const parsed = JSON.parse(cfg);
-    // Validate required fields
-    if (!parsed.apiKey || !parsed.projectId) throw new Error('Missing required fields');
-    localStorage.setItem('fb_config', JSON.stringify(parsed));
-    localStorage.setItem('fb_pin', pin);
-    showApp();
-  } catch(e) {
-    errEl.textContent = 'Format config tidak valid. Pastikan copy seluruh isi objek firebaseConfig { ... }';
-    errEl.style.display = '';
-  }
+  if (pin !== confirm) { errEl.textContent = 'PIN tidak cocok, coba lagi'; errEl.style.display = ''; return; }
+  localStorage.setItem('fb_pin', pin);
+  showApp();
 };
 window.checkPin = function() {
   const pin = document.getElementById('login-pin').value;
@@ -613,8 +583,7 @@ window.checkPin = function() {
   }
 };
 window.resetConfig = function() {
-  if (!confirm('Reset konfigurasi? Kamu perlu setup ulang Firebase config.')) return;
-  localStorage.removeItem('fb_config');
+  if (!confirm('Reset PIN? Kamu perlu buat PIN baru.')) return;
   localStorage.removeItem('fb_pin');
   showSetup();
 };
